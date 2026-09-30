@@ -8,6 +8,7 @@
   <style>
     * { box-sizing: border-box; font-family: 'Georgia', serif; -webkit-tap-highlight-color: transparent; }
     body { background: #0a0a0a; color: #fff; text-align: center; margin: 0; padding: 20px; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow-x: hidden; touch-action: manipulation; }
+    
     .card { background: #181818; padding: 30px; border-radius: 16px; max-width: 450px; width: 100%; border: 2px solid #d4af37; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); position: relative; z-index: 10; }
     h1 { color: #d4af37; margin-bottom: 15px; font-size: 24px; }
     p { color: #ddd; line-height: 1.5; font-size: 16px; }
@@ -28,17 +29,23 @@
     .funny { color: #f39c12; }
     .error { color: #e74c3c; }
 
+    /* Modal / Pop-up elegante */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; backdrop-filter: blur(4px); }
+    .modal-box { background: #1c1c1c; border: 2px solid #d4af37; border-radius: 16px; padding: 25px; max-width: 380px; width: 100%; box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); text-align: center; }
+    .modal-title { color: #d4af37; font-size: 22px; margin-top: 0; margin-bottom: 12px; }
+    .modal-text { color: #fff; font-size: 16px; line-height: 1.5; margin-bottom: 20px; }
+
     /* Estilos del Teatro y Telón */
     #stage-container { display: none; width: 100%; max-width: 500px; height: 600px; position: relative; overflow: hidden; border: 4px solid #d4af37; border-radius: 12px; background: #000; user-select: none; }
     .curtain { position: absolute; top: 0; width: 50%; height: 100%; background: #8b0000; border-bottom: 10px solid #d4af37; transition: transform 2s ease-in-out; z-index: 5; box-shadow: inset 0 0 30px #000; }
     .curtain-left { left: 0; border-right: 2px solid #550000; }
     .curtain-right { right: 0; border-left: 2px solid #550000; }
     
-    /* Cuerda para arrastrar */
-    #rope-wrapper { position: absolute; top: 0; right: 30px; z-index: 10; cursor: grab; touch-action: none; }
-    #rope { width: 12px; height: 180px; background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b); border-radius: 0 0 6px 6px; box-shadow: 2px 2px 8px rgba(0,0,0,0.6); position: relative; }
-    #rope-handle { font-size: 28px; position: absolute; bottom: -22px; left: -9px; }
-    #rope-instruction { position: absolute; top: 220px; right: 10px; background: #d4af37; color: #000; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 10; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: bounce 1.5s infinite; }
+    /* Cuerda interactiva continua que se desenrolla/alarga */
+    #rope-container { position: absolute; top: 0; right: 30px; z-index: 10; cursor: grab; touch-action: none; display: flex; flex-direction: column; align-items: center; }
+    #rope { width: 10px; height: 160px; background: repeating-linear-gradient(45deg, #b8860b, #b8860b 10px, #ffd700 10px, #ffd700 20px); border-radius: 0 0 4px 4px; box-shadow: 2px 2px 8px rgba(0,0,0,0.7); position: relative; }
+    #rope-knot { width: 22px; height: 22px; background: #d4af37; border-radius: 50%; margin-top: -6px; box-shadow: 0 4px 8px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; font-size: 12px; }
+    #rope-instruction { position: absolute; top: 210px; right: 10px; background: #d4af37; color: #000; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 10; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: bounce 1.5s infinite; }
 
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
@@ -74,7 +81,7 @@
       <div id="colorMsg" class="msg"></div>
     </div>
 
-    <!-- Paso 3: Destino (Botones de ciudades que desaparecen) -->
+    <!-- Paso 3: Destino (Botones de ciudades) -->
     <div id="step3" class="hidden">
       <h1>✈️ Pregunta Final</h1>
       <p>Si pudieras hacer un viaje express ahora mismo, ¿a qué ciudad elegirías ir?</p>
@@ -91,21 +98,28 @@
     </div>
   </div>
 
+  <!-- Pop-up Modal para Madrid -->
+  <div id="madridModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3 class="modal-title">🎯 ¡Destino Confirmado!</h3>
+      <p class="modal-text">¡Sabíamos que elegirías Madrid! 😏 Qué bien te conocemos... (o igual es que no te hemos dejado otra opción).</p>
+      <button class="btn-main" onclick="closeModalAndGoToStage()">¡Ver mi regalo! 🎭</button>
+    </div>
+  </div>
+
   <!-- Escenario del Teatro -->
   <div id="stage-container">
     <div class="curtain curtain-left" id="curtainL"></div>
     <div class="curtain curtain-right" id="curtainR"></div>
     
-    <div id="rope-wrapper">
-      <div id="rope">
-        <span id="rope-handle">🪢</span>
-      </div>
+    <div id="rope-container">
+      <div id="rope"></div>
+      <div id="rope-knot">🪢</div>
     </div>
-    <div id="rope-instruction">👇 ¡Arrastra la cuerda hacia abajo!</div>
+    <div id="rope-instruction">👇 Tira de la cuerda hacia abajo</div>
 
     <div class="poster-container">
       <h2 class="reveal-title">LOS MISERABLES</h2>
-      <!-- Cartel Oficial del Musical -->
       <img class="poster-img" src="https://upload.wikimedia.org/wikipedia/en/b/b3/Les_Mis%C3%A9rables_Logo.png" alt="Cartel Los Miserables">
       <p class="reveal-sub" style="margin-top: 15px;">🎭 <strong>¡NOS VAMOS AL MUSICAL EN MADRID!</strong> 🎟️</p>
       <p style="color: #d4af37; font-size: 14px; margin-top: 10px;">¡Feliz 63 cumpleaños!</p>
@@ -155,30 +169,30 @@
     }
 
     function selectMadrid() {
-      const msg = document.getElementById('cityMsg');
-      msg.textContent = "🎯 ¡Sabíamos que elegirías Madrid! 😏 Qué bien te conocemos... (o igual es que no te hemos dejado otra opción). ¡Nos vamos!";
-      msg.className = "msg funny";
+      document.getElementById('madridModal').classList.remove('hidden');
+    }
 
-      setTimeout(() => {
-        document.getElementById('quiz-card').classList.add('hidden');
-        document.getElementById('stage-container').style.display = 'block';
-        initRopeDrag();
-      }, 2200);
+    function closeModalAndGoToStage() {
+      document.getElementById('madridModal').classList.add('hidden');
+      document.getElementById('quiz-card').classList.add('hidden');
+      document.getElementById('stage-container').style.display = 'block';
+      initRopeDrag();
     }
 
     let curtainOpened = false;
 
     function initRopeDrag() {
-      const rope = document.getElementById('rope-wrapper');
+      const ropeContainer = document.getElementById('rope-container');
+      const ropeEl = document.getElementById('rope');
+      const initialHeight = 160;
       let startY = 0;
-      let currentY = 0;
       let isDragging = false;
 
       function onStart(e) {
         if (curtainOpened) return;
         isDragging = true;
         startY = e.touches ? e.touches[0].clientY : e.clientY;
-        rope.style.transition = 'none';
+        ropeEl.style.transition = 'none';
       }
 
       function onMove(e) {
@@ -187,10 +201,10 @@
         const deltaY = clientY - startY;
 
         if (deltaY > 0) {
-          currentY = Math.min(deltaY, 150);
-          rope.style.transform = `translateY(${currentY}px)`;
+          const currentHeight = initialHeight + Math.min(deltaY, 130);
+          ropeEl.style.height = currentHeight + 'px';
 
-          if (currentY >= 90) {
+          if (deltaY >= 80) {
             triggerCurtain();
           }
         }
@@ -199,31 +213,31 @@
       function onEnd() {
         if (!isDragging || curtainOpened) return;
         isDragging = false;
-        if (currentY < 90) {
-          rope.style.transition = 'transform 0.4s ease';
-          rope.style.transform = 'translateY(0px)';
-        }
+        ropeEl.style.transition = 'height 0.4s ease';
+        ropeEl.style.height = initialHeight + 'px';
       }
 
-      rope.addEventListener('mousedown', onStart);
+      ropeContainer.addEventListener('mousedown', onStart);
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onEnd);
 
-      rope.addEventListener('touchstart', onStart, { passive: true });
+      ropeContainer.addEventListener('touchstart', onStart, { passive: true });
       window.addEventListener('touchmove', onMove, { passive: true });
       window.addEventListener('touchend', onEnd);
     }
 
     function triggerCurtain() {
       curtainOpened = true;
-      const rope = document.getElementById('rope-wrapper');
-      rope.style.transition = 'transform 0.3s ease';
-      rope.style.transform = 'translateY(120px)';
+      const ropeEl = document.getElementById('rope');
+      const ropeContainer = document.getElementById('rope-container');
+      
+      ropeEl.style.transition = 'height 0.3s ease';
+      ropeEl.style.height = '280px';
 
       setTimeout(() => {
         document.getElementById('curtainL').style.transform = 'translateX(-100%)';
         document.getElementById('curtainR').style.transform = 'translateX(100%)';
-        rope.style.display = 'none';
+        ropeContainer.style.display = 'none';
         document.getElementById('rope-instruction').style.display = 'none';
         
         confetti({
@@ -231,7 +245,7 @@
           spread: 90,
           origin: { y: 0.6 }
         });
-      }, 200);
+      }, 250);
     }
   </script>
 </body>
