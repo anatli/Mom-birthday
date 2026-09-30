@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>¡Tu Regalo Especial!</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <style>
+    * { box-sizing: border-box; font-family: 'Georgia', serif; -webkit-tap-highlight-color: transparent; }
+    body { background: #0a0a0a; color: #fff; text-align: center; margin: 0; padding: 20px; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow-x: hidden; touch-action: manipulation; }
+    .card { background: #181818; padding: 30px; border-radius: 16px; max-width: 450px; width: 100%; border: 2px solid #d4af37; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); position: relative; z-index: 10; }
+    h1 { color: #d4af37; margin-bottom: 15px; font-size: 24px; }
+    p { color: #ddd; line-height: 1.5; font-size: 16px; }
+    input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 8px; border: 1px solid #d4af37; background: #222; color: #fff; font-size: 16px; text-align: center; }
+    
+    /* Botones principales */
+    .btn-main { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #8b0000; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; border: 1px solid #d4af37; margin-top: 10px; }
+    .btn-main:hover { background: #a00000; }
+    
+    /* Grid de ciudades */
+    .city-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0; min-height: 120px; align-items: center; }
+    .btn-city { padding: 12px 20px; border-radius: 8px; border: 1px solid #d4af37; background: #2a2a2a; color: #fff; font-size: 16px; cursor: pointer; transition: transform 0.3s, opacity 0.3s; }
+    .btn-city:hover { background: #3a3a3a; }
+    .btn-city.vanish { transform: scale(0); opacity: 0; pointer-events: none; }
+
+    .hidden { display: none !important; }
+    .msg { margin-top: 10px; font-weight: bold; font-size: 14px; min-height: 24px; }
+    .funny { color: #f39c12; }
+    .error { color: #e74c3c; }
+
+    /* Estilos del Teatro y Telón */
+    #stage-container { display: none; width: 100%; max-width: 500px; height: 600px; position: relative; overflow: hidden; border: 4px solid #d4af37; border-radius: 12px; background: #000; user-select: none; }
+    .curtain { position: absolute; top: 0; width: 50%; height: 100%; background: #8b0000; border-bottom: 10px solid #d4af37; transition: transform 2s ease-in-out; z-index: 5; box-shadow: inset 0 0 30px #000; }
+    .curtain-left { left: 0; border-right: 2px solid #550000; }
+    .curtain-right { right: 0; border-left: 2px solid #550000; }
+    
+    /* Cuerda para arrastrar */
+    #rope-wrapper { position: absolute; top: 0; right: 30px; z-index: 10; cursor: grab; touch-action: none; }
+    #rope { width: 12px; height: 180px; background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b); border-radius: 0 0 6px 6px; box-shadow: 2px 2px 8px rgba(0,0,0,0.6); position: relative; }
+    #rope-handle { font-size: 28px; position: absolute; bottom: -22px; left: -9px; }
+    #rope-instruction { position: absolute; top: 220px; right: 10px; background: #d4af37; color: #000; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; z-index: 10; pointer-events: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: bounce 1.5s infinite; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(8px); }
+    }
+
+    /* Revelación final detrás del telón */
+    .poster-container { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .poster-img { max-width: 80%; max-height: 320px; border-radius: 8px; border: 2px solid #d4af37; box-shadow: 0 0 20px rgba(212,175,55,0.4); }
+    .reveal-title { color: #d4af37; font-size: 24px; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; }
+    .reveal-sub { color: #fff; font-size: 16px; margin: 0; }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="quiz-card">
+    <!-- Paso 1: Edad -->
+    <div id="step1">
+      <h1>🎂 ¡Bienvenida!</h1>
+      <p>Para desbloquear tu regalo de cumpleaños, primero confirma tus datos:</p>
+      <label>¿Cuántos años cumples hoy?</label>
+      <input type="number" id="ageInput" placeholder="Introduce tu edad...">
+      <button class="btn-main" onclick="checkAge()">Continuar</button>
+      <div id="ageMsg" class="msg"></div>
+    </div>
+
+    <!-- Paso 2: Color Favorito -->
+    <div id="step2" class="hidden">
+      <h1>🎨 Pregunta 2 de 3</h1>
+      <p>¿Cuál es tu color preferido del mundo mundial?</p>
+      <input type="text" id="colorInput" placeholder="Escribe tu color...">
+      <button class="btn-main" onclick="checkColor()">Guardar elección</button>
+      <div id="colorMsg" class="msg"></div>
+    </div>
+
+    <!-- Paso 3: Destino (Botones de ciudades que desaparecen) -->
+    <div id="step3" class="hidden">
+      <h1>✈️ Pregunta Final</h1>
+      <p>Si pudieras hacer un viaje express ahora mismo, ¿a qué ciudad elegirías ir?</p>
+      
+      <div class="city-grid">
+        <button class="btn-city" onclick="disappear(this)">París 🇫🇷</button>
+        <button class="btn-city" onclick="disappear(this)">Londres 🇬🇧</button>
+        <button class="btn-city" id="btnMadrid" onclick="selectMadrid()">Madrid 🇪🇸</button>
+        <button class="btn-city" onclick="disappear(this)">Roma 🇮🇹</button>
+        <button class="btn-city" onclick="disappear(this)">Nueva York 🇺🇸</button>
+      </div>
+
+      <div id="cityMsg" class="msg"></div>
+    </div>
+  </div>
+
+  <!-- Escenario del Teatro -->
+  <div id="stage-container">
+    <div class="curtain curtain-left" id="curtainL"></div>
+    <div class="curtain curtain-right" id="curtainR"></div>
+    
+    <div id="rope-wrapper">
+      <div id="rope">
+        <span id="rope-handle">🪢</span>
+      </div>
+    </div>
+    <div id="rope-instruction">👇 ¡Arrastra la cuerda hacia abajo!</div>
+
+    <div class="poster-container">
+      <h2 class="reveal-title">LOS MISERABLES</h2>
+      <!-- Cartel Oficial del Musical -->
+      <img class="poster-img" src="https://upload.wikimedia.org/wikipedia/en/b/b3/Les_Mis%C3%A9rables_Logo.png" alt="Cartel Los Miserables">
+      <p class="reveal-sub" style="margin-top: 15px;">🎭 <strong>¡NOS VAMOS AL MUSICAL EN MADRID!</strong> 🎟️</p>
+      <p style="color: #d4af37; font-size: 14px; margin-top: 10px;">¡Feliz 63 cumpleaños!</p>
+    </div>
+  </div>
+
+  <script>
+    function checkAge() {
+      const age = parseInt(document.getElementById('ageInput').value);
+      const msg = document.getElementById('ageMsg');
+
+      if (!age) {
+        msg.textContent = "¡Por favor, introduce un número!";
+        msg.className = "msg error";
+      } else if (age < 63) {
+        msg.textContent = "¿Qué pasa, que tienes un pacto con Dorian Gray o qué? 🤫 Pon 63, que los llevas estupendamente.";
+        msg.className = "msg funny";
+      } else if (age > 63) {
+        msg.textContent = "¡Oye, que tampoco eres tan mayor! 😂 Pon 63.";
+        msg.className = "msg funny";
+      } else {
+        msg.textContent = "";
+        document.getElementById('step1').classList.add('hidden');
+        document.getElementById('step2').classList.remove('hidden');
+      }
+    }
+
+    function checkColor() {
+      const color = document.getElementById('colorInput').value.trim();
+      const msg = document.getElementById('colorMsg');
+
+      if (color === "") {
+        msg.textContent = "¡Dime un color aunque sea!";
+        msg.className = "msg error";
+      } else {
+        msg.textContent = "";
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step3').classList.remove('hidden');
+      }
+    }
+
+    function disappear(element) {
+      element.classList.add('vanish');
+      const msg = document.getElementById('cityMsg');
+      msg.textContent = "👀 Uy... esa opción parece que se ha esfumado. ¡Prueba otra!";
+      msg.className = "msg funny";
+    }
+
+    function selectMadrid() {
+      const msg = document.getElementById('cityMsg');
+      msg.textContent = "🎯 ¡Sabíamos que elegirías Madrid! 😏 Qué bien te conocemos... (o igual es que no te hemos dejado otra opción). ¡Nos vamos!";
+      msg.className = "msg funny";
+
+      setTimeout(() => {
+        document.getElementById('quiz-card').classList.add('hidden');
+        document.getElementById('stage-container').style.display = 'block';
+        initRopeDrag();
+      }, 2200);
+    }
+
+    let curtainOpened = false;
+
+    function initRopeDrag() {
+      const rope = document.getElementById('rope-wrapper');
+      let startY = 0;
+      let currentY = 0;
+      let isDragging = false;
+
+      function onStart(e) {
+        if (curtainOpened) return;
+        isDragging = true;
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+        rope.style.transition = 'none';
+      }
+
+      function onMove(e) {
+        if (!isDragging || curtainOpened) return;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const deltaY = clientY - startY;
+
+        if (deltaY > 0) {
+          currentY = Math.min(deltaY, 150);
+          rope.style.transform = `translateY(${currentY}px)`;
+
+          if (currentY >= 90) {
+            triggerCurtain();
+          }
+        }
+      }
+
+      function onEnd() {
+        if (!isDragging || curtainOpened) return;
+        isDragging = false;
+        if (currentY < 90) {
+          rope.style.transition = 'transform 0.4s ease';
+          rope.style.transform = 'translateY(0px)';
+        }
+      }
+
+      rope.addEventListener('mousedown', onStart);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+
+      rope.addEventListener('touchstart', onStart, { passive: true });
+      window.addEventListener('touchmove', onMove, { passive: true });
+      window.addEventListener('touchend', onEnd);
+    }
+
+    function triggerCurtain() {
+      curtainOpened = true;
+      const rope = document.getElementById('rope-wrapper');
+      rope.style.transition = 'transform 0.3s ease';
+      rope.style.transform = 'translateY(120px)';
+
+      setTimeout(() => {
+        document.getElementById('curtainL').style.transform = 'translateX(-100%)';
+        document.getElementById('curtainR').style.transform = 'translateX(100%)';
+        rope.style.display = 'none';
+        document.getElementById('rope-instruction').style.display = 'none';
+        
+        confetti({
+          particleCount: 150,
+          spread: 90,
+          origin: { y: 0.6 }
+        });
+      }, 200);
+    }
+  </script>
+</body>
+</html>
